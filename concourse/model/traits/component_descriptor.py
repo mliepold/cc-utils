@@ -70,6 +70,14 @@ ATTRIBUTES = (
         default={},
         doc='Specifies additional environment variables passed to .ci/component_descriptor script',
     ),
+    AttributeSpec.optional(
+        name='upload_component_descriptor',
+        default=False,
+        doc=(
+            'If `true`, the created component-descriptor will be published iff all other steps '
+            'have completed successfully.'
+        )
+    ),
     AttributeSpec.deprecated(
         name='validation_policies',
         type=typing.List[str],
@@ -138,6 +146,9 @@ class ComponentDescriptorTrait(Trait):
 
     def validation_policies(self):
         return ()
+
+    def upload_component_descriptor(self):
+        return self.raw['upload_component_descriptor']
 
     def ctx_repository(self) -> model.ctx_repository.CtxRepositoryCfg:
         ctx_repo_name = self.raw.get('ctx_repository')
@@ -217,12 +228,38 @@ class ComponentDescriptorTraitTransformer(TraitTransformer):
         yield self.descriptor_step
 
     def process_pipeline_args(self, pipeline_args: 'JobVariant'):
-        if pipeline_args.has_step('release'):
+        if pipeline_args.has_trait('release'):
+            # configure the steps added by the release-trait
             release_step = pipeline_args.step('release')
             release_step.add_input(
                 name=DIR_NAME,
                 variable_name=ENV_VAR_NAME,
             )
+            upload_component_descriptor_step = pipeline_args.step('upload_component_descriptor')
+            upload_component_descriptor_step.add_input(
+                name=DIR_NAME,
+                variable_name=ENV_VAR_NAME,
+            )
+        else:
+            # if upload is configured, add the step here and configure it
+            if self.trait.upload_component_descriptor():
+                upload_component_descriptor_step = PipelineStep(
+                    name='upload_component_descriptor',
+                    raw_dict={},
+                    is_synthetic=True,
+                    notification_policy=StepNotificationPolicy.NO_NOTIFICATION,
+                    injecting_trait_name=self.trait.step_name(),
+                    script_type=ScriptType.PYTHON3,
+                )
+                upload_component_descriptor_step.add_input(
+                    name=DIR_NAME,
+                    variable_name=ENV_VAR_NAME,
+                )
+                # cd-upload depends on all other steps
+                for step in pipeline_args.steps():
+                    upload_component_descriptor_step._add_dependency(step)
+                pipeline_args.add_step(upload_component_descriptor_step)
+
         if pipeline_args.has_trait('draft_release'):
             draft_release_step = pipeline_args.step('create_draft_release_notes')
             draft_release_step.add_input(

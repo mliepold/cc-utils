@@ -251,9 +251,22 @@ class ReleaseTraitTransformer(TraitTransformer):
         )
         yield self.release_step
 
+        self.upload_component_descriptor_step = PipelineStep(
+            name='upload_component_descriptor',
+            raw_dict={},
+            is_synthetic=True,
+            notification_policy=StepNotificationPolicy.NO_NOTIFICATION,
+            injecting_trait_name=self.name,
+            script_type=ScriptType.PYTHON3,
+        )
+        self.upload_component_descriptor_step._add_dependency(self.release_step)
+        yield self.upload_component_descriptor_step
+
     def process_pipeline_args(self, pipeline_args: JobVariant):
-        # we depend on all other steps
+        # The release step depends on all steps except the component-descriptor upload
         for step in pipeline_args.steps():
+            if step.name == 'upload_component_descriptor':
+                continue
             self.release_step._add_dependency(step)
 
         # a 'release job' should only be triggered automatically if explicitly configured

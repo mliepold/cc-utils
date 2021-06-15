@@ -342,7 +342,7 @@ class PublishTraitTransformer(TraitTransformer):
         # prepare-step depdends on every other step, except publish and release
         # TODO: do not hard-code knowledge about 'release' step
         for step in pipeline_args.steps():
-            if step.name in ['publish', 'release', 'build_oci_image']:
+            if step.name in ['publish', 'release', 'upload_component_descriptor', 'build_oci_image']:
                 continue
             if step.name.startswith('build_oci_image'):
                 continue

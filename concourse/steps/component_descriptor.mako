@@ -224,20 +224,6 @@ elif have_cd:
     ci.util.parse_yaml_file(v2_outfile)
   )
   print(f'found component-descriptor (v2) at {v2_outfile=}')
-elif have_ctf:
-  subprocess.run(
-    [
-      'component-cli',
-      'ctf',
-      'push',
-      ctf_out_path,
-    ],
-    check=True,
-    env=subproc_env,
-  )
-  print(f'processed ctf-archive at {ctf_out_path=} - exiting')
-  # XXX TODO: also calculate bom-diff!
-  exit(0)
 
 # determine "bom-diff" (changed component references)
 try:

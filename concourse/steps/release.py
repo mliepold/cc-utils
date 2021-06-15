@@ -634,18 +634,6 @@ class GitHubReleaseStep(TransactionalStep):
                 name=self.release_version,
             )
 
-        if os.path.exists(self.component_descriptor_v2_path):
-            component_descriptor_v2 = cm.ComponentDescriptor.from_dict(
-                component_descriptor_dict=ci.util.parse_yaml_file(
-                    self.component_descriptor_v2_path
-                ),
-            )
-
-            logger.info('publishing CNUDIE-Component-Descriptor')
-            product.v2.upload_component_descriptor_v2_to_oci_registry(
-                component_descriptor_v2=component_descriptor_v2,
-            )
-
         for component_descriptor_v2 in self.components:
             descriptor_str = yaml.dump(
                 data=dataclasses.asdict(component_descriptor_v2),
